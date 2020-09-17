@@ -28,6 +28,9 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <boost/lexical_cast.hpp>
 #include <tf/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <image_transport/image_transport.h>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
@@ -51,9 +54,12 @@ public:
   size_t img_pub_level_;
   size_t img_pub_nth_;
   size_t dense_pub_nth_;
+  tf2_ros::Buffer* tf_buffer_;
+  tf2_ros::TransformListener* tfListener_;
   ros::Publisher pub_frames_;
   ros::Publisher pub_points_;
   ros::Publisher pub_pose_;
+  ros::Publisher pub_odom_;
   ros::Publisher pub_info_;
   ros::Publisher pub_dense_;
   image_transport::Publisher pub_images_;

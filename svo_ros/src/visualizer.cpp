@@ -49,10 +49,13 @@ Visualizer() :
     publish_points_display_time_(vk::getParam<double>("svo/publish_point_display_time", 0)),
     T_world_from_vision_(Matrix3d::Identity(), Vector3d::Zero())
 {
+  tf_buffer_ = new tf2_ros::Buffer();
+  tf_buffer_->setUsingDedicatedThread(true);
   // Init ROS Marker Publishers
   pub_frames_ = pnh_.advertise<visualization_msgs::Marker>("keyframes", 10);
   pub_points_ = pnh_.advertise<visualization_msgs::Marker>("points", 1000);
   pub_pose_ = pnh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("pose",10);
+  pub_odom_ = pnh_.advertise<nav_msgs::Odometry>("odom",10);
   pub_info_ = pnh_.advertise<svo_msgs::Info>("info", 10);
   pub_dense_ = pnh_.advertise<svo_msgs::DenseInput>("dense_input",10);
 
@@ -160,6 +163,7 @@ void Visualizer::publishMinimal(
     pub_images_.publish(img_msg.toImageMsg());
   }
 
+
   if(pub_pose_.getNumSubscribers() > 0 && slam.stage() == FrameHandlerBase::STAGE_DEFAULT_FRAME)
   {
     Quaterniond q;
@@ -185,7 +189,7 @@ void Visualizer::publishMinimal(
     msg_pose->header = header_msg;
     msg_pose->pose.pose.position.x = p[0];
     msg_pose->pose.pose.position.y = p[1];
-    msg_pose->pose.pose.position.z = p[2];
+    msg_pose->pose.pose.position.z = -p[2];
     msg_pose->pose.pose.orientation.x = q.x();
     msg_pose->pose.pose.orientation.y = q.y();
     msg_pose->pose.pose.orientation.z = q.z();
@@ -193,6 +197,80 @@ void Visualizer::publishMinimal(
     for(size_t i=0; i<36; ++i)
       msg_pose->pose.covariance[i] = Cov(i%6, i/6);
     pub_pose_.publish(msg_pose);
+  }
+
+  if(pub_odom_.getNumSubscribers() > 0 && slam.stage() == FrameHandlerBase::STAGE_DEFAULT_FRAME)
+  {
+    Quaterniond q;
+    Vector3d p;
+    Matrix<double,6,6> Cov;
+    if(publish_world_in_cam_frame_)
+    {
+      // publish world in cam frame
+      SE3 T_cam_from_world(frame->T_f_w_* T_world_from_vision_);
+      q = Quaterniond(T_cam_from_world.rotation_matrix());
+      p = T_cam_from_world.translation();
+      Cov = frame->Cov_;
+    }
+    else
+    {
+      // publish cam in world frame
+      SE3 T_world_from_cam(T_world_from_vision_*frame->T_f_w_.inverse());
+      q = Quaterniond(T_world_from_cam.rotation_matrix()*T_world_from_vision_.rotation_matrix().transpose());
+      p = T_world_from_cam.translation();
+      Cov = T_world_from_cam.Adj()*frame->Cov_*T_world_from_cam.inverse().Adj();
+    }
+    
+    nav_msgs::OdometryPtr msg_odom(new nav_msgs::Odometry);
+    msg_odom->header = header_msg;
+    msg_odom->pose.pose.position.x = p[1];
+    msg_odom->pose.pose.position.y = p[0];
+    msg_odom->pose.pose.position.z = -p[2];
+    msg_odom->pose.pose.orientation.x = q.y();
+    msg_odom->pose.pose.orientation.y = q.x();
+    msg_odom->pose.pose.orientation.z = -q.z();
+    msg_odom->pose.pose.orientation.w = q.w();
+    msg_odom->pose.covariance[0] = Cov(1,1); 
+    msg_odom->pose.covariance[1] = Cov(1,0); 
+    msg_odom->pose.covariance[2] = Cov(1,2); 
+    msg_odom->pose.covariance[3] = Cov(1,4); 
+    msg_odom->pose.covariance[4] = Cov(1,1); 
+    msg_odom->pose.covariance[5] = Cov(1,5); 
+    msg_odom->pose.covariance[6] = Cov(0,1); 
+    msg_odom->pose.covariance[7] = Cov(0,0); 
+    msg_odom->pose.covariance[8] = Cov(0,2); 
+    msg_odom->pose.covariance[9] = Cov(0,4); 
+    msg_odom->pose.covariance[10] = Cov(0,1); 
+    msg_odom->pose.covariance[11] = Cov(0,5); 
+    msg_odom->pose.covariance[12] = Cov(2,1); 
+    msg_odom->pose.covariance[13] = Cov(2,0); 
+    msg_odom->pose.covariance[14] = Cov(2,2); 
+    msg_odom->pose.covariance[15] = Cov(2,4); 
+    msg_odom->pose.covariance[16] = Cov(2,3); 
+    msg_odom->pose.covariance[17] = Cov(2,5); 
+    msg_odom->pose.covariance[18] = Cov(4,1); 
+    msg_odom->pose.covariance[19] = Cov(4,0); 
+    msg_odom->pose.covariance[20] = Cov(4,2); 
+    msg_odom->pose.covariance[21] = Cov(4,4); 
+    msg_odom->pose.covariance[22] = Cov(4,3); 
+    msg_odom->pose.covariance[23] = Cov(4,5); 
+    msg_odom->pose.covariance[24] = Cov(3,1); 
+    msg_odom->pose.covariance[25] = Cov(3,0); 
+    msg_odom->pose.covariance[26] = Cov(3,2); 
+    msg_odom->pose.covariance[27] = Cov(3,4); 
+    msg_odom->pose.covariance[28] = Cov(3,3); 
+    msg_odom->pose.covariance[29] = Cov(3,5); 
+    msg_odom->pose.covariance[30] = Cov(5,1); 
+    msg_odom->pose.covariance[31] = Cov(5,0); 
+    msg_odom->pose.covariance[32] = Cov(5,2); 
+    msg_odom->pose.covariance[33] = Cov(5,4); 
+    msg_odom->pose.covariance[34] = Cov(5,3); 
+    msg_odom->pose.covariance[35] = Cov(5,5); 
+    msg_odom->header = header_msg;
+    msg_odom->header.frame_id="odom";
+    msg_odom->child_frame_id = "cam_pos";
+    pub_odom_.publish(msg_odom);
+
   }
 }
 
