@@ -40,7 +40,8 @@ InitResult KltHomographyInit::addFirstFrame(FramePtr frame_ref)
   return SUCCESS;
 }
 
-InitResult KltHomographyInit::addSecondFrame(FramePtr frame_cur)
+InitResult KltHomographyInit::addSecondFrame(FramePtr frame_cur,
+                                             double april_tag_scale)
 {
   trackKlt(frame_ref_, frame_cur, px_ref_, px_cur_, f_ref_, f_cur_, disparities_);
   SVO_INFO_STREAM("Init: KLT tracked "<< disparities_.size() <<" features");
@@ -70,7 +71,15 @@ InitResult KltHomographyInit::addSecondFrame(FramePtr frame_cur)
   for(size_t i=0; i<xyz_in_cur_.size(); ++i)
     depth_vec.push_back((xyz_in_cur_[i]).z());
   double scene_depth_median = vk::getMedian(depth_vec);
-  double scale = Config::mapScale()/scene_depth_median;
+  double current_map_scale = Config::mapScale();
+  ROS_INFO("First Map scale is %0.2f", current_map_scale);
+  if (april_tag_scale != 0.00)
+  {
+    ROS_INFO("hit statement");
+    current_map_scale = april_tag_scale;
+  }
+  double scale = current_map_scale/scene_depth_median;
+  ROS_INFO("Map scale is: %0.2f, april tag scale is %0.2f", current_map_scale, april_tag_scale);
   frame_cur->T_f_w_ = T_cur_from_ref_ * frame_ref_->T_f_w_;
   frame_cur->T_f_w_.translation() =
       -frame_cur->T_f_w_.rotation_matrix()*(frame_ref_->pos() + scale*(frame_cur->pos() - frame_ref_->pos()));

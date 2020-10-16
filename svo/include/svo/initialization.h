@@ -38,7 +38,8 @@ public:
   KltHomographyInit() {};
   ~KltHomographyInit() {};
   InitResult addFirstFrame(FramePtr frame_ref);
-  InitResult addSecondFrame(FramePtr frame_ref);
+  InitResult addSecondFrame(FramePtr frame_ref,
+                            double april_tag_scale);
   void reset();
 
 protected:

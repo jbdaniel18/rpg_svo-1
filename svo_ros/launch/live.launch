@@ -1,9 +1,11 @@
+<?xml version="1.0"?>
 <launch>
-  
-    <node pkg="svo_ros" type="vo" name="svo" clear_params="true" output="screen">
+    <node pkg="svo_ros" type="vo" name="svo" clear_params="true" output="screen"
+    launch-prefix="xterm -e gdb --args">
     
         <!-- Camera topic to subscribe to -->
         <param name="cam_topic" value="/image" type="str" />
+        <remap from="april_tag_in" to="/tag_detections"/>
         
         <!-- Camera calibration file -->
         <rosparam file="$(find svo_ros)/param/camera_pinhole.yaml" />

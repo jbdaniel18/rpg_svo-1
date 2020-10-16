@@ -268,7 +268,7 @@ void Visualizer::publishMinimal(
     msg_odom->pose.covariance[35] = Cov(5,5); 
     msg_odom->header = header_msg;
     msg_odom->header.frame_id="odom";
-    msg_odom->child_frame_id = "cam_pos";
+    msg_odom->child_frame_id = "downward_camera";
     pub_odom_.publish(msg_odom);
 
   }

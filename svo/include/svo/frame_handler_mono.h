@@ -59,6 +59,7 @@ public:
       const SE3& T_kf_f,
       const cv::Mat& img,
       const double timestamp);
+  double april_tag_scale_;
 
 protected:
   vk::AbstractCamera* cam_;                     //!< Camera model, can be ATAN, Pinhole or Ocam (see vikit).

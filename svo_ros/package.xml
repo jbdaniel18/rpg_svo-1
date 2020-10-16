@@ -25,6 +25,7 @@
   <build_depend>svo</build_depend>
   <build_depend>svo_msgs</build_depend>
   <build_depend>vikit_common</build_depend>
+  <build_depend>apriltag_ros</build_depend>
   <build_depend>vikit_ros</build_depend>
   
   <!-- Dependencies needed after this package is compiled. -->
@@ -39,5 +40,6 @@
   <run_depend>svo</run_depend>
   <run_depend>svo_msgs</run_depend>
   <run_depend>vikit_common</run_depend>
+  <run_depend>apriltag_ros</run_depend>
   <run_depend>vikit_ros</run_depend>
 </package>

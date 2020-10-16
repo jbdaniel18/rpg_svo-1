@@ -33,6 +33,7 @@
 #include <vikit/abstract_camera.h>
 #include <vikit/camera_loader.h>
 #include <vikit/user_input_thread.h>
+#include <apriltag_ros/AprilTagDetectionArray.h>
 
 namespace svo {
 
@@ -46,12 +47,14 @@ public:
   bool publish_dense_input_;
   boost::shared_ptr<vk::UserInputThread> user_input_thread_;
   ros::Subscriber sub_remote_key_;
+  ros::Subscriber april_tag_sub_;
   std::string remote_input_;
   vk::AbstractCamera* cam_;
   bool quit_;
   VoNode();
   ~VoNode();
   void imgCb(const sensor_msgs::ImageConstPtr& msg);
+  void aprilTagCb(const apriltag_ros::AprilTagDetectionArrayConstPtr& msg);
   void processUserActions();
   void remoteKeyCb(const std_msgs::StringConstPtr& key_input);
 };
@@ -116,6 +119,19 @@ void VoNode::imgCb(const sensor_msgs::ImageConstPtr& msg)
     usleep(100000);
 }
 
+void VoNode::aprilTagCb(const apriltag_ros::AprilTagDetectionArrayConstPtr& msg)
+{
+  if (!msg->detections.empty())
+  {
+    ROS_INFO("April:%0.2f",msg->detections.front().pose.pose.pose.position.z);
+    vo_->april_tag_scale_ = msg->detections.front().pose.pose.pose.position.z;
+  }
+  else
+  {
+    vo_->april_tag_scale_ = 0.00;
+  }
+}
+
 void VoNode::processUserActions()
 {
   char input = remote_input_.c_str()[0];
@@ -148,6 +164,7 @@ void VoNode::processUserActions()
 
 void VoNode::remoteKeyCb(const std_msgs::StringConstPtr& key_input)
 {
+    ROS_INFO("inside cb for remote");
   remote_input_ = key_input->data;
 }
 
@@ -160,6 +177,7 @@ int main(int argc, char **argv)
   std::cout << "create vo_node" << std::endl;
   svo::VoNode vo_node;
 
+  vo_node.april_tag_sub_ = nh.subscribe("april_tag_in", 5, &svo::VoNode::aprilTagCb, &vo_node);
   // subscribe to cam msgs
   std::string cam_topic(vk::getParam<std::string>("svo/cam_topic", "camera/image_raw"));
   image_transport::ImageTransport it(nh);

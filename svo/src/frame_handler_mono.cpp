@@ -102,12 +102,15 @@ FrameHandlerMono::UpdateResult FrameHandlerMono::processFirstFrame()
 
 FrameHandlerBase::UpdateResult FrameHandlerMono::processSecondFrame()
 {
-  initialization::InitResult res = klt_homography_init_.addSecondFrame(new_frame_);
+  initialization::InitResult res = klt_homography_init_.addSecondFrame(new_frame_,
+                                                                       april_tag_scale_);
   if(res == initialization::FAILURE)
     return RESULT_FAILURE;
   else if(res == initialization::NO_KEYFRAME)
     return RESULT_NO_KEYFRAME;
-
+  //reset april tag scale after initialization. This will require new april tag detection
+  // to initialize a new frame
+  april_tag_scale_ = 0.00;
   // two-frame bundle adjustment
 #ifdef USE_BUNDLE_ADJUSTMENT
   ba::twoViewBA(new_frame_.get(), map_.lastKeyframe().get(), Config::lobaThresh(), &map_);
